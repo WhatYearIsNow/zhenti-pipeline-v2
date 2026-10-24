@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zhenti-pipeline"
+version = "0.1.0.dev0"
+description = "真题整理与成书流水线共用核心（审批、状态、事务、校验、来源解析）"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }  # 2026-10-24 用户决定（原占位 Proprietary 已替换）
+authors = [{ name = "zhenti-pipeline maintainers" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "License :: OSI Approved :: MIT License",
+]
+# 核心零第三方依赖：storage/domain 全部 stdlib（S0 清单）。
+dependencies = []
+
+[project.optional-dependencies]
+images = ["Pillow>=10", "numpy"]        # 题图裁边/杂讯/校验
+pdf = ["PyMuPDF>=1.24"]                 # PDF 结构对账
+review-pdf = ["reportlab"]              # 目录迁移复核 PDF
+schema = ["jsonschema"]                 # 契约 schema 校验
+dev = ["pytest>=8", "zhenti-pipeline[images,pdf,review-pdf,schema]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+include-package-data = false

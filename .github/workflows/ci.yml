@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package with dev extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run tests (excluding rendering — 见下说明)
+        run: pytest -q -m "not rendering"
+      - name: Collection integrity
+        run: pytest --collect-only -q
+
+# 渲染层（真实 XeLaTeX）暂不进 CI，原因（方案 §9）：
+# 1) exam-zh、ulem、STIXTwo、Asana 等第三方 TeX 资源的许可与分发材料尚未核清，
+#    CI 环境能否合法安装这些资源未确认；
+# 2) 渲染证据已在固定工具链（Windows TeX Live 2026）以 tests/test_rendering.py 提供，
+#    跨平台渲染 job 待 S6 许可复核完成后启用。
+# 第三方 Actions 均固定完整 commit SHA；本工作流不持有任何外部服务凭据。

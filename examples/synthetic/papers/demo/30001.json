@@ -1,0 +1,57 @@
+{
+ "fileId": "30001",
+ "kind": "final",
+ "ab": null,
+ "course": "演示科目",
+ "paperDisplay": "2025—2026学年第一学期《演示科目》期末考试试卷",
+ "sourceFile": "合成样卷第1页",
+ "missing": [],
+ "questions": [
+  {
+   "num": 1,
+   "type": "choice",
+   "subtype": "single",
+   "chapter": {
+    "label": "第一章",
+    "section": "1.1 基础"
+   },
+   "desc": "求 $1+1$ 的值。",
+   "options": [
+    {
+     "letter": "A",
+     "text": "2"
+    },
+    {
+     "letter": "B",
+     "text": "3"
+    }
+   ],
+   "answer": "A",
+   "analysis": "由算术可知选 A。",
+   "images": []
+  },
+  {
+   "num": 2,
+   "type": "open",
+   "subtype": "",
+   "chapter": {
+    "label": "第二章",
+    "section": "2.1 进阶"
+   },
+   "also_chapter": {
+    "label": "第一章",
+    "section": "1.1 基础"
+   },
+   "desc": "证明单调性并作图说明。",
+   "options": [],
+   "answer": "证明如下。",
+   "analysis": "略。",
+   "images": [
+    {
+     "file": "30001-T2-1.png",
+     "where": "desc"
+    }
+   ]
+  }
+ ]
+}

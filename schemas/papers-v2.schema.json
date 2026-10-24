@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zhenti-pipeline.invalid/schemas/papers-v2.schema.json",
+  "title": "papers-v2 卷级转录产物（只读契约起点；语义校验见 domain/check_papers）",
+  "description": "S3 版本化契约起点。结构以 schema 校验；来源/missing/双归属/章节等语义由 check_papers.audit 负责，二者不互相替代（方案 §5.2）。",
+  "type": "object",
+  "required": ["fileId", "kind", "paperDisplay", "questions"],
+  "properties": {
+    "schemaVersion": { "type": ["integer", "null"], "enum": [null, 1, 2] },
+    "fileId": {
+      "type": "string",
+      "pattern": "^[\\w\\-\\u4e00-\\u9fff]+$",
+      "description": "卷身份；不得含路径字符，须与文件名 stem 一致"
+    },
+    "kind": { "enum": ["final", "midterm"] },
+    "ab": { "enum": [null, "A", "B"] },
+    "course": { "type": "string" },
+    "paperDisplay": { "type": "string", "minLength": 1 },
+    "sourceFile": { "type": "string" },
+    "missing": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "uniqueItems": true,
+      "description": "缺答案/解析登记；与题目空值双向核对属语义校验"
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "chapter": {
+      "type": "object",
+      "required": ["label"],
+      "properties": {
+        "label": { "type": "string" },
+        "section": { "type": ["string", "null"] }
+      }
+    },
+    "image": {
+      "type": "object",
+      "required": ["file", "where"],
+      "properties": {
+        "file": { "type": "string", "pattern": "^[^/\\\\]+$", "description": "裸文件名，禁止路径分隔符" },
+        "where": { "enum": ["desc", "analysis"] }
+      }
+    },
+    "option": {
+      "type": "object",
+      "required": ["letter", "text"],
+      "properties": {
+        "letter": { "type": "string", "minLength": 1 },
+        "text": { "type": "string" }
+      }
+    },
+    "question": {
+      "type": "object",
+      "required": ["num", "type", "chapter", "desc"],
+      "properties": {
+        "num": { "type": "integer", "minimum": 1, "description": "原题身份 (fileId, num) 之 num" },
+        "type": { "enum": ["choice", "fill", "open"] },
+        "subtype": {
+          "enum": ["", "calc", "fill", "solution", "choice", "single", "judge", "multi"]
+        },
+        "chapter": { "$ref": "#/$defs/chapter" },
+        "also_chapter": {
+          "oneOf": [{ "$ref": "#/$defs/chapter" }, { "type": "null" }],
+          "description": "合法双归属第二收录；与主章节完全相同属语义错误"
+        },
+        "desc": { "type": "string" },
+        "options": { "type": "array", "items": { "$ref": "#/$defs/option" } },
+        "answer": { "type": "string" },
+        "analysis": { "type": "string" },
+        "images": { "type": "array", "items": { "$ref": "#/$defs/image" } },
+        "releaseBlocked": { "type": "boolean" },
+        "reviewStatus": { "type": "string" },
+        "status": { "type": "string" },
+        "flags": {}
+      }
+    }
+  }
+}
