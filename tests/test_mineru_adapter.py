@@ -1,4 +1,5 @@
 """S4 回归：MinerU 备料适配器（A06 契约 / A07 缓存键），全程离线（uploader 注入替身）。"""
+
 import json
 import sys
 from pathlib import Path
@@ -16,7 +17,7 @@ def make_root(tmp_path: Path) -> Path:
     root = tmp_path / "input"
     root.mkdir()
     (root / "a.pdf").write_bytes(b"%PDF-1.4 fake-A")
-    (root / "a.jpg").write_bytes(b"\xff\xd8 fake-JPEG")       # 同名不同格式（OCR-01）
+    (root / "a.jpg").write_bytes(b"\xff\xd8 fake-JPEG")  # 同名不同格式（OCR-01）
     (root / "sub").mkdir(exist_ok=True)
     (root / "sub" / "b.pdf").write_bytes(b"%PDF-1.4 fake-B")  # 递归
     return root
@@ -28,6 +29,7 @@ def fake_uploader(ok=True):
             return False, "fake failure"
         (pkg / f"{src.stem}.md").write_text(f"# {src.stem}\n\n正文", encoding="utf-8")
         return True, ""
+
     return upload
 
 
@@ -113,5 +115,6 @@ def test_uploader_failure_partial_success_resume(tmp_path):
 
 def test_missing_root_raises(tmp_path):
     import pytest
+
     with pytest.raises(FileNotFoundError):
         mineru.prepare(tmp_path / "nope", uploader=fake_uploader())

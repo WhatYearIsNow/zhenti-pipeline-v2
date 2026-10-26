@@ -4,6 +4,7 @@ parse_review → (独立复核) → build_errata_candidates 的本地部分；�
 parse_review 契约：disputed 桶 = 除"无法确认"外全部实质行（含一致行，供逐项复核）；
 manifest = {"fileId": ..., "bundle": {"questionTotal": N}}，按 fileId 对账越界 id。
 """
+
 import json
 import subprocess
 import sys
@@ -14,8 +15,12 @@ from pathlib import Path
 import importlib.util
 
 _SOURCES_PRESENT = (Path(__file__).resolve().parents[1] / "sources").exists()
-pytestmark = [pytest.mark.skipif(not _SOURCES_PRESENT,
-                reason="内部工具链快照（sources/）不在发布包内——私有证据层，公开 CI 不跑")]
+pytestmark = [
+    pytest.mark.skipif(
+        not _SOURCES_PRESENT,
+        reason="内部工具链快照（sources/）不在发布包内——私有证据层，公开 CI 不跑",
+    )
+]
 
 REPO = Path(__file__).resolve().parents[1]
 EXR = REPO / "sources" / "workflow" / "optimization" / "v2" / "external-review"
@@ -40,9 +45,23 @@ def run_parse(tmp_path: Path, text: str, manifest=MANIFEST, out="parsed.json"):
     mf = tmp_path / "manifest.json"
     mf.write_text(json.dumps(manifest), encoding="utf-8")
     outp = tmp_path / out
-    r = subprocess.run([sys.executable, str(EXR / "parse_review.py"), "--review", review,
-                        "--manifest", mf, "--out", outp], capture_output=True,
-                       text=True, encoding="utf-8", errors="replace", timeout=60)
+    r = subprocess.run(
+        [
+            sys.executable,
+            str(EXR / "parse_review.py"),
+            "--review",
+            review,
+            "--manifest",
+            mf,
+            "--out",
+            outp,
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+    )
     return r, outp
 
 
@@ -85,18 +104,46 @@ def test_parse_review_flags_out_of_bundle_ids(tmp_path):
 
 def test_candidates_are_decision_support_only(tmp_path):
     # REV-05：候选表不是可执行勘误表——无 oldValue/newValue/anchor 组合
-    parsed = {"disputed": [{"id": "30001-T1"}], "unconfirmable": [], "summaryParsed": {},
-              "coverageCheck": {"consistent": True, "reportedIdsOutsideBundle": []}}
-    rereview = {"items": [{"id": "30001-T1", "verdict": "misread", "reason": "确认为B",
-                           "evidence": "原卷第1页", "proposedNew": {"answer": "B"}}]}
+    parsed = {
+        "disputed": [{"id": "30001-T1"}],
+        "unconfirmable": [],
+        "summaryParsed": {},
+        "coverageCheck": {"consistent": True, "reportedIdsOutsideBundle": []},
+    }
+    rereview = {
+        "items": [
+            {
+                "id": "30001-T1",
+                "verdict": "misread",
+                "reason": "确认为B",
+                "evidence": "原卷第1页",
+                "proposedNew": {"answer": "B"},
+            }
+        ]
+    }
     pp, rp = tmp_path / "p.json", tmp_path / "r.json"
     pp.write_text(json.dumps(parsed, ensure_ascii=False), encoding="utf-8")
     rp.write_text(json.dumps(rereview, ensure_ascii=False), encoding="utf-8")
-    r = subprocess.run([sys.executable, str(EXR / "build_errata_candidates.py"),
-                        "--parsed", pp, "--rereview", rp, "--subject", "calculus",
-                        "--out", str(tmp_path / "c.json")], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace",
-                       cwd=str(tmp_path), timeout=60)
+    r = subprocess.run(
+        [
+            sys.executable,
+            str(EXR / "build_errata_candidates.py"),
+            "--parsed",
+            pp,
+            "--rereview",
+            rp,
+            "--subject",
+            "calculus",
+            "--out",
+            str(tmp_path / "c.json"),
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(tmp_path),
+        timeout=60,
+    )
     if r.returncode == 0:
         blob = (tmp_path / "c.json").read_text(encoding="utf-8")
         assert '"anchor"' not in blob  # 不可直接 apply（决策支持件）
@@ -111,16 +158,34 @@ def test_candidates_require_full_rereview_coverage(tmp_path):
     pp, rp = tmp_path / "p.json", tmp_path / "r.json"
     pp.write_text(json.dumps(parsed, ensure_ascii=False), encoding="utf-8")
     rp.write_text(json.dumps(rereview, ensure_ascii=False), encoding="utf-8")
-    r = subprocess.run([sys.executable, str(EXR / "build_errata_candidates.py"),
-                        "--parsed", pp, "--rereview", rp, "--subject", "calculus",
-                        "--out", str(tmp_path / "c.json")], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", cwd=str(tmp_path), timeout=60)
+    r = subprocess.run(
+        [
+            sys.executable,
+            str(EXR / "build_errata_candidates.py"),
+            "--parsed",
+            pp,
+            "--rereview",
+            rp,
+            "--subject",
+            "calculus",
+            "--out",
+            str(tmp_path / "c.json"),
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(tmp_path),
+        timeout=60,
+    )
     assert r.returncode != 0 and "缺项" in (r.stderr + r.stdout)
 
 
 def test_parse_module_direct_call_buckets():
-    text = ('{"id":"30001-T1","my_result":"无法确认","severity":"medium","reason":"模糊"}\n'
-            "汇总：总计 1 道；同意 0；异议/存疑 0；无法确认 1\n")
+    text = (
+        '{"id":"30001-T1","my_result":"无法确认","severity":"medium","reason":"模糊"}\n'
+        "汇总：总计 1 道；同意 0；异议/存疑 0；无法确认 1\n"
+    )
     parsed = _parse_review().parse(text, MANIFEST)
     assert not parsed["disputed"]
     assert [u["id"] for u in parsed["unconfirmable"]] == ["30001-T1"]

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "project": "zhenti-pipeline-v2",
+  "skillName": "zhenti-pipeline-v2",
+  "baseline": [
+    [
+      "{python}",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "-m",
+      "not rendering"
+    ]
+  ],
+  "test": [
+    [
+      "{python}",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "-m",
+      "not rendering"
+    ]
+  ],
+  "check": [
+    [
+      "{python}",
+      "-m",
+      "ruff",
+      "format",
+      "--check",
+      "src",
+      "tests",
+      "conftest.py"
+    ]
+  ],
+  "candidate": [
+    [
+      "{python}",
+      "-m",
+      "build",
+      "--wheel",
+      "--outdir",
+      "{run}/artifacts"
+    ]
+  ],
+  "artifact": "*.whl",
+  "archivePrefix": "",
+  "health": [
+    [
+      "{python}",
+      "-m",
+      "zhenti_pipeline",
+      "--help"
+    ]
+  ],
+  "preserve": [
+    ".local",
+    "runs",
+    "papers",
+    "bank-data"
+  ],
+  "format-check": [
+    [
+      "{python}",
+      "-m",
+      "ruff",
+      "format",
+      "--check",
+      "src",
+      "tests",
+      "conftest.py"
+    ]
+  ],
+  "format": [
+    [
+      "{python}",
+      "-m",
+      "ruff",
+      "format",
+      "src",
+      "tests",
+      "conftest.py"
+    ]
+  ],
+  "artifactKind": "python-wheel"
+}

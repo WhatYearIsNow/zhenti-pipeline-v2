@@ -8,3 +8,7 @@ build/
 dist/
 *.egg-info/
 runs/
+
+.ruff_cache/
+
+.venv/

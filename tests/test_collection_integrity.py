@@ -2,6 +2,7 @@
 
 S1 退出标准之一：一条命令（python -m pytest）可收集并执行全部隔离测试。
 """
+
 import re
 import subprocess
 import sys
@@ -14,13 +15,17 @@ COLLECTED_RE = re.compile(r"^\d+ tests collected", re.M)
 def _collect():
     return subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q"],
-        cwd=str(REPO), capture_output=True, encoding="utf-8", errors="replace", timeout=600,
+        cwd=str(REPO),
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=600,
     )
 
 
 def test_full_tree_collects_without_errors():
     proc = _collect()
-    detail = (proc.stdout[-4000:] + "\n--- stderr ---\n" + proc.stderr[-2000:])
+    detail = proc.stdout[-4000:] + "\n--- stderr ---\n" + proc.stderr[-2000:]
     assert proc.returncode == 0, detail
     assert COLLECTED_RE.search(proc.stdout), detail
     assert " no tests ran" not in proc.stdout, detail

@@ -3,17 +3,39 @@
 方案 §5.2：旧格式通过只读适配器读入；升级先输出逐项差异和新文件，不静默覆写；
 未知字段不无意丢失。本模块只读——任何写入都属于后续显式迁移命令（S5 审批式迁移）。
 """
+
 import json
 from pathlib import Path
 
 # papers-v2 契约（references/papers-v2.md + check_papers 语义）已知的卷级/题目字段。
 KNOWN_PAPER_FIELDS = {
-    "fileId", "kind", "ab", "course", "paperDisplay", "sourceFile",
-    "missing", "questions", "schemaVersion", "taxonomyVersion", "notes",
+    "fileId",
+    "kind",
+    "ab",
+    "course",
+    "paperDisplay",
+    "sourceFile",
+    "missing",
+    "questions",
+    "schemaVersion",
+    "taxonomyVersion",
+    "notes",
 }
 KNOWN_QUESTION_FIELDS = {
-    "num", "type", "subtype", "chapter", "also_chapter", "desc", "options",
-    "answer", "analysis", "images", "releaseBlocked", "reviewStatus", "status", "flags",
+    "num",
+    "type",
+    "subtype",
+    "chapter",
+    "also_chapter",
+    "desc",
+    "options",
+    "answer",
+    "analysis",
+    "images",
+    "releaseBlocked",
+    "reviewStatus",
+    "status",
+    "flags",
 }
 LEGACY_SCHEMA_VERSIONS = {None, 1, 2}  # 无 schemaVersion 的最老批次按 None 记录
 
@@ -56,8 +78,13 @@ def inspect_paper(data: dict) -> dict:
             per_question[str(q.get("num"))] = uq
     if per_question:
         notes.append(f"题目级未知字段（保留不丢）: {per_question}")
-    return {"schemaVersion": version, "unknownPaperFields": unknown,
-            "unknownQuestionFields": per_question, "notes": notes, "warnings": warnings}
+    return {
+        "schemaVersion": version,
+        "unknownPaperFields": unknown,
+        "unknownQuestionFields": per_question,
+        "notes": notes,
+        "warnings": warnings,
+    }
 
 
 def inspect_papers(papers_dir: Path) -> dict:
@@ -76,9 +103,13 @@ def inspect_papers(papers_dir: Path) -> dict:
         files["errors"].append("textbook.json 缺失")
     if meta.is_file():
         data, notes = load_json_readonly(meta)
-        files["meta"] = {"loaded": data is not None, "notes": notes,
-                         "unknownFields": _unknown_fields(data, {
-                             "subject", "mockSource", "schemaVersion", "taxonomyVersion", "files"})}
+        files["meta"] = {
+            "loaded": data is not None,
+            "notes": notes,
+            "unknownFields": _unknown_fields(
+                data, {"subject", "mockSource", "schemaVersion", "taxonomyVersion", "files"}
+            ),
+        }
     else:
         files["warnings"].append("meta.json 不存在（旧卷兼容，新交付应提供）")
     for path in sorted(papers_dir.glob("*.json")):
@@ -91,10 +122,12 @@ def inspect_papers(papers_dir: Path) -> dict:
         rep = inspect_paper(data)
         counts["papers"] += 1
         counts["questions"] += len(data.get("questions", []) or [])
-        files["papers"][path.name] = {"schemaVersion": rep["schemaVersion"],
-                                      "unknownPaperFields": rep["unknownPaperFields"],
-                                      "unknownQuestionFields": rep["unknownQuestionFields"],
-                                      "notes": rep["notes"]}
+        files["papers"][path.name] = {
+            "schemaVersion": rep["schemaVersion"],
+            "unknownPaperFields": rep["unknownPaperFields"],
+            "unknownQuestionFields": rep["unknownQuestionFields"],
+            "notes": rep["notes"],
+        }
         files["warnings"].extend(rep["warnings"])
     img = papers_dir / "images"
     if img.is_dir():

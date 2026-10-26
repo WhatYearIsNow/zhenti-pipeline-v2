@@ -19,6 +19,7 @@ verify 供工作流在任何 --apply 前调用——approve 值只能取 verify 
 禁止脚本字面量（首跑 L598 事故的结构性封堵）。
 台账 append-only：optimization/v2/approvals/ledger.jsonl，每行一条凭据（含消费状态）。
 """
+
 import argparse
 import hashlib
 import json
@@ -29,6 +30,7 @@ import time
 from pathlib import Path
 
 from zhenti_pipeline.storage.filelock import exclusive_lock
+
 
 def ledger_path() -> Path:
     """台账路径：env 优先；旧脚本布局默认由 pipeline 薄包装在 __main__ 守卫内注入。"""
@@ -75,9 +77,13 @@ def save(rows: list) -> None:
 
 
 def rec_id(row: dict) -> str:
-    return hashlib.sha256(json.dumps(
-        {k: row[k] for k in ("type", "batchId", "previewSha256", "oldTargetSha256", "target")},
-        ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()[:24]
+    return hashlib.sha256(
+        json.dumps(
+            {k: row[k] for k in ("type", "batchId", "previewSha256", "oldTargetSha256", "target")},
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()[:24]
 
 
 def main() -> int:
@@ -86,10 +92,20 @@ def main() -> int:
         sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    ap = argparse.ArgumentParser(description="审批凭据台账（record=登记用户批准 / verify=写前验证并消费）")
+    ap = argparse.ArgumentParser(
+        description="审批凭据台账（record=登记用户批准 / verify=写前验证并消费）"
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("record")
-    for k in ("--type", "--batch-id", "--preview-sha", "--input-sha", "--old-target-sha", "--target", "--evidence"):
+    for k in (
+        "--type",
+        "--batch-id",
+        "--preview-sha",
+        "--input-sha",
+        "--old-target-sha",
+        "--target",
+        "--evidence",
+    ):
         r.add_argument(k, required=True)
     for name in ("verify", "peek"):
         v = sub.add_parser(name)
@@ -112,12 +128,16 @@ def _dispatch(args) -> int:
 
     if args.cmd == "record":
         row = {
-            "type": args.type, "batchId": args.batch_id,
-            "previewSha256": args.preview_sha, "inputSha256": args.input_sha,
-            "oldTargetSha256": args.old_target_sha, "target": args.target.replace("\\", "/"),
+            "type": args.type,
+            "batchId": args.batch_id,
+            "previewSha256": args.preview_sha,
+            "inputSha256": args.input_sha,
+            "oldTargetSha256": args.old_target_sha,
+            "target": args.target.replace("\\", "/"),
             "evidence": args.evidence,
             "recordedAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-            "consumed": False, "consumedAt": None,
+            "consumed": False,
+            "consumedAt": None,
         }
         row["id"] = rec_id(row)
         rows.append(row)
@@ -127,21 +147,31 @@ def _dispatch(args) -> int:
 
     # verify/peek：四元组全匹配 + 未消费（+可选输入指纹一致）→ 输出指纹（peek 不消费）
     consume = args.cmd == "verify"
+
     # 2026-10-12：同四元组重新走审核孔后台账里会同时存在已消费旧凭据与新凭据——
     # 查找必须优先未消费行，否则"重新走审核孔"被旧行永久堵死（历史勘误重试踩过）。
     def _quad_match(row):
-        return (row["type"] == args.type and row["batchId"] == args.batch_id
-                and row["previewSha256"] == args.preview_sha
-                and row["oldTargetSha256"] == args.old_target_sha
-                and row["target"] == args.target.replace("\\", "/"))
+        return (
+            row["type"] == args.type
+            and row["batchId"] == args.batch_id
+            and row["previewSha256"] == args.preview_sha
+            and row["oldTargetSha256"] == args.old_target_sha
+            and row["target"] == args.target.replace("\\", "/")
+        )
 
     matches = [r for r in rows if _quad_match(r)]
     unconsumed = [r for r in matches if not r.get("consumed")]
     if not matches:
-        print("ERROR: 无匹配凭据（类型/批次/预览指纹/目标旧值/路径 四元组任一不符）——未获批准，禁止写入", file=sys.stderr)
+        print(
+            "ERROR: 无匹配凭据（类型/批次/预览指纹/目标旧值/路径 四元组任一不符）——未获批准，禁止写入",
+            file=sys.stderr,
+        )
         return 1
     if not unconsumed:
-        print(f"ERROR: 凭据 {matches[0]['id']} 已消费（单次有效）且无未消费的新凭据——重复执行须重新走审核孔", file=sys.stderr)
+        print(
+            f"ERROR: 凭据 {matches[0]['id']} 已消费（单次有效）且无未消费的新凭据——重复执行须重新走审核孔",
+            file=sys.stderr,
+        )
         return 1
     row = unconsumed[0]
     if args.input_sha and row["inputSha256"] != args.input_sha:
@@ -151,7 +181,9 @@ def _dispatch(args) -> int:
         row["consumed"] = True
         row["consumedAt"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
         save(rows)
-        print(f"# consumed credential {row['id']} ({row['type']} @ {row['batchId']})", file=sys.stderr)
+        print(
+            f"# consumed credential {row['id']} ({row['type']} @ {row['batchId']})", file=sys.stderr
+        )
     else:
         print(f"# peek ok (未消费) credential {row['id']}", file=sys.stderr)
     print(row["previewSha256"])

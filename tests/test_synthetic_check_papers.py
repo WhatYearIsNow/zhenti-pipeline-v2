@@ -6,6 +6,7 @@
   图片路径越界 / 未注册章节 / Markdown 残留）。
 全部写入临时目录，不触碰正式区（ISO-02）。
 """
+
 import base64
 import importlib.util
 import json
@@ -16,8 +17,9 @@ _SCRIPT = REPO / "sources" / "skills" / "exam-compilation" / "scripts" / "check_
 
 import pytest
 
-pytestmark = pytest.mark.skipif(not _SCRIPT.is_file(),
-                                reason="内部工具链快照（sources/）不在发布包内——私有证据层")
+pytestmark = pytest.mark.skipif(
+    not _SCRIPT.is_file(), reason="内部工具链快照（sources/）不在发布包内——私有证据层"
+)
 
 
 def _check_papers():
@@ -25,6 +27,7 @@ def _check_papers():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
 
 # 1×1 真实 PNG（与 stage01 fixture 构建器同源，PIL 可解码）
 VALID_PNG = base64.b64decode(
@@ -37,22 +40,40 @@ META = {"subject": "demo", "mockSource": ""}
 
 def paper(extra_q=None, missing=None):
     questions = [
-        {"num": 1, "type": "choice", "subtype": "single",
-         "chapter": {"label": "第一章", "section": "1.1 基础"},
-         "desc": "求 $1+1$ 的值。", "options": [{"letter": "A", "text": "2"}, {"letter": "B", "text": "3"}],
-         "answer": "A", "analysis": "由算术可知选 A。", "images": []},
-        {"num": 2, "type": "open", "subtype": "",
-         "chapter": {"label": "第二章", "section": "2.1 进阶"},
-         "desc": "证明单调性。", "options": [],
-         "answer": "证明如下。", "analysis": "略。", "images": []},
+        {
+            "num": 1,
+            "type": "choice",
+            "subtype": "single",
+            "chapter": {"label": "第一章", "section": "1.1 基础"},
+            "desc": "求 $1+1$ 的值。",
+            "options": [{"letter": "A", "text": "2"}, {"letter": "B", "text": "3"}],
+            "answer": "A",
+            "analysis": "由算术可知选 A。",
+            "images": [],
+        },
+        {
+            "num": 2,
+            "type": "open",
+            "subtype": "",
+            "chapter": {"label": "第二章", "section": "2.1 进阶"},
+            "desc": "证明单调性。",
+            "options": [],
+            "answer": "证明如下。",
+            "analysis": "略。",
+            "images": [],
+        },
     ]
     if extra_q:
         questions.extend(extra_q)
     return {
-        "fileId": "30001", "kind": "final", "ab": None,
-        "course": "演示科目", "sourceFile": "合成样卷第1页",
+        "fileId": "30001",
+        "kind": "final",
+        "ab": None,
+        "course": "演示科目",
+        "sourceFile": "合成样卷第1页",
         "paperDisplay": "2025—2026学年第一学期《演示科目》期末考试试卷",
-        "missing": missing or [], "questions": questions,
+        "missing": missing or [],
+        "questions": questions,
     }
 
 

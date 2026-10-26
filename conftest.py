@@ -4,6 +4,7 @@
 文件系统副作用由各测试用 tempfile/tmp_path 自行限定（ISO-02）。
 历史上不存在需要网络回环的用例；如未来引入本地替身服务，须显式加白并说明。
 """
+
 import socket
 
 import pytest
