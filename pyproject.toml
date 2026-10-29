@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zhenti-pipeline"
-version = "0.1.0.dev0"
+version = "0.1.0rc1"
 description = "真题整理与成书流水线共用核心（审批、状态、事务、校验、来源解析）"
 readme = "README.md"
 requires-python = ">=3.11"
