@@ -22,6 +22,7 @@ S2 P0-A04：互更（set-paper/set-point/record-approval/refresh）全程持锁 
 --expected-revision CAS；成功必递增 revision 并输出 {"ok":true,"revision":N}。
 全部原子写（唯一临时文件+替换）+ 写后读回；锁随进程死亡自动释放（filelock.py）。
 """
+
 import argparse
 import hashlib
 import json
@@ -32,6 +33,7 @@ import time
 from pathlib import Path
 
 from zhenti_pipeline.storage.filelock import exclusive_lock
+
 
 # S3：包内默认 env 优先、CWD 兜底；旧脚本布局默认（workflow/runs）由 pipeline 薄包装
 # 在 __main__ 守卫内注入（模块导入不得改写进程环境——S4 教训：会污染调用方）。
@@ -48,8 +50,10 @@ def _hash_inputs_cmd() -> list[str]:
     if env:
         return [str(Path(env))]
     here = Path(__file__).resolve()
-    for cand in (here.parents[3] / "sources" / "workflow" / "hash_inputs.py",
-                 Path.cwd() / "hash_inputs.py"):
+    for cand in (
+        here.parents[3] / "sources" / "workflow" / "hash_inputs.py",
+        Path.cwd() / "hash_inputs.py",
+    ):
         if cand.is_file():
             return [str(cand)]
     return ["-m", "zhenti_pipeline.workflow.hash_inputs"]
@@ -83,16 +87,18 @@ def atomic_write(path: Path, obj) -> None:
 def ws_rel(p: Path) -> str:
     cwd = os.getcwd().replace("\\", "/")
     s = str(p).replace("\\", "/")
-    return s[len(cwd) + 1:] if s.startswith(cwd + "/") else s
+    return s[len(cwd) + 1 :] if s.startswith(cwd + "/") else s
 
 
 def snapshot(subject: str, config_path: str) -> dict:
     cfg = Path(config_path)
     tb = Path("papers") / subject / "textbook.json"
     meta = Path("papers") / subject / "meta.json"
-    snap = {"configSha256": sha_file(cfg) if cfg.is_file() else None,
-            "textbookSha256": sha_file(tb) if tb.is_file() else None,
-            "metaSha256": sha_file(meta) if meta.is_file() else None}
+    snap = {
+        "configSha256": sha_file(cfg) if cfg.is_file() else None,
+        "textbookSha256": sha_file(tb) if tb.is_file() else None,
+        "metaSha256": sha_file(meta) if meta.is_file() else None,
+    }
     return snap
 
 
@@ -104,9 +110,14 @@ def input_fingerprint(input_dir: str, subject: str, out: Path) -> str | None:
     if tb.is_file():
         roots.append(str(tb))
     import subprocess
-    r = subprocess.run([sys.executable, *_hash_inputs_cmd(),
-                        "--exclude-dir", "mineru", *roots, str(out)],
-                       capture_output=True, text=True, encoding="utf-8", env=dict(os.environ, PYTHONUTF8="1"))
+
+    r = subprocess.run(
+        [sys.executable, *_hash_inputs_cmd(), "--exclude-dir", "mineru", *roots, str(out)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=dict(os.environ, PYTHONUTF8="1"),
+    )
     return r.stdout.strip().splitlines()[0] if r.returncode == 0 else None
 
 
@@ -116,7 +127,9 @@ def main() -> int:
         sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    ap = argparse.ArgumentParser(description="run 状态清单（init/verify/record-approval/set-paper/set-point）")
+    ap = argparse.ArgumentParser(
+        description="run 状态清单（init/verify/record-approval/set-paper/set-point）"
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("init", "verify"):
         s = sub.add_parser(name)
@@ -127,16 +140,24 @@ def main() -> int:
     p.add_argument("--run-dir", required=True)
     p.add_argument("--subject", required=True)
     p.add_argument("--config-path", required=True)
-    p.add_argument("--why", required=True, help="为何刷新（如：第0步章树定稿回填 / onboard 更新 manifest）")
-    for name, keys in (("record-approval", ["--approval-id"]),
-                       ("set-paper", ["--file-id", "--sha", "--stage"]),
-                       ("set-point", ["--pause-point", "--next-stage"])):
+    p.add_argument(
+        "--why", required=True, help="为何刷新（如：第0步章树定稿回填 / onboard 更新 manifest）"
+    )
+    for name, keys in (
+        ("record-approval", ["--approval-id"]),
+        ("set-paper", ["--file-id", "--sha", "--stage"]),
+        ("set-point", ["--pause-point", "--next-stage"]),
+    ):
         s = sub.add_parser(name)
         s.add_argument("--run-dir", required=True)
         for k in keys:
             s.add_argument(k, required=True)
-        s.add_argument("--expected-revision", type=int, default=None,
-                       help="CAS：提供时与当前 revision 不符即拒绝（S2 P0-A04）")
+        s.add_argument(
+            "--expected-revision",
+            type=int,
+            default=None,
+            help="CAS：提供时与当前 revision 不符即拒绝（S2 P0-A04）",
+        )
     p.add_argument("--expected-revision", type=int, default=None)
     args = ap.parse_args()
 
@@ -144,8 +165,12 @@ def main() -> int:
         run_id = getattr(args, "run_id", None) or f"{args.subject}-{args.batch_id}"
         run_dir = runs_root() / run_id
         state_path = run_dir / "state.json"
-        args_echo = {"subject": args.subject, "batchId": args.batch_id,
-                     "inputDir": args.input_dir.replace("\\", "/"), "configPath": args.config_path.replace("\\", "/")}
+        args_echo = {
+            "subject": args.subject,
+            "batchId": args.batch_id,
+            "inputDir": args.input_dir.replace("\\", "/"),
+            "configPath": args.config_path.replace("\\", "/"),
+        }
         fp_out = run_dir / "input-fingerprint.json"
         if args.cmd == "init" and not state_path.is_file():
             # init 与并发 init/verify 竞争：建目录与落盘持锁，锁内复查避免双建
@@ -156,16 +181,31 @@ def main() -> int:
                 run_dir.mkdir(parents=True, exist_ok=True)
                 fp = input_fingerprint(args_echo["inputDir"], args.subject, fp_out)
                 if fp is None:
-                    print("ERROR: 输入指纹计算失败（hash_inputs fail-closed：原料目录或章节树缺失）", file=sys.stderr)
+                    print(
+                        "ERROR: 输入指纹计算失败（hash_inputs fail-closed：原料目录或章节树缺失）",
+                        file=sys.stderr,
+                    )
                     return 1
-                st = {"runId": run_id, "owner": os.environ.get("USERNAME") or "unknown",
-                      "revision": 1, "createdAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                      "argsEcho": args_echo, "inputFingerprint": fp,
-                      **snapshot(args.subject, args.config_path),
-                      "papers": {}, "approvalIds": [],
-                      "pausePoint": "init", "nextStage": "index"}
+                st = {
+                    "runId": run_id,
+                    "owner": os.environ.get("USERNAME") or "unknown",
+                    "revision": 1,
+                    "createdAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    "argsEcho": args_echo,
+                    "inputFingerprint": fp,
+                    **snapshot(args.subject, args.config_path),
+                    "papers": {},
+                    "approvalIds": [],
+                    "pausePoint": "init",
+                    "nextStage": "index",
+                }
                 atomic_write(state_path, st)
-            print(json.dumps({"ok": True, "runDir": ws_rel(run_dir), "inputFingerprint": fp}, ensure_ascii=False))
+            print(
+                json.dumps(
+                    {"ok": True, "runDir": ws_rel(run_dir), "inputFingerprint": fp},
+                    ensure_ascii=False,
+                )
+            )
             return 0
         # init 已存在 或 verify：逐项核对，漂移即停机
         if not state_path.is_file():
@@ -187,13 +227,25 @@ def main() -> int:
         elif fp != st["inputFingerprint"]:
             drift.append(f"输入指纹: state={st['inputFingerprint'][:12]}… 当前={fp[:12]}…")
         if drift:
-            print("DRIFT: 状态与当前环境不一致——Amend/恢复后参数或输入已变化，禁止回退默认科目，须人工核对：", file=sys.stderr)
+            print(
+                "DRIFT: 状态与当前环境不一致——Amend/恢复后参数或输入已变化，禁止回退默认科目，须人工核对：",
+                file=sys.stderr,
+            )
             for d in drift:
                 print(f"  - {d}", file=sys.stderr)
             return 1
         if args.cmd == "verify":
-            print(json.dumps({"ok": True, "inputFingerprint": fp,
-                              "papers": st["papers"], "nextStage": st["nextStage"]}, ensure_ascii=False))
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "inputFingerprint": fp,
+                        "papers": st["papers"],
+                        "nextStage": st["nextStage"],
+                    },
+                    ensure_ascii=False,
+                )
+            )
             return 0
         print(json.dumps({"ok": True, "reused": True, "inputFingerprint": fp}, ensure_ascii=False))
         return 0
@@ -215,18 +267,29 @@ def main() -> int:
             if cas:
                 print(cas, file=sys.stderr)
                 return 3
-            fp = input_fingerprint(st["argsEcho"]["inputDir"], args.subject, run_dir / "input-fingerprint.json")
+            fp = input_fingerprint(
+                st["argsEcho"]["inputDir"], args.subject, run_dir / "input-fingerprint.json"
+            )
             if fp is None or fp != st["inputFingerprint"]:
-                print(f"ERROR: 输入指纹漂移（{str(st['inputFingerprint'])[:12]}… → {str(fp)[:12]}…）——原料变动须重新审批，不允许 refresh", file=sys.stderr)
+                print(
+                    f"ERROR: 输入指纹漂移（{str(st['inputFingerprint'])[:12]}… → {str(fp)[:12]}…）——原料变动须重新审批，不允许 refresh",
+                    file=sys.stderr,
+                )
                 return 1
             cur = snapshot(args.subject, args.config_path)
             changed = False
             for k in ("configSha256", "textbookSha256", "metaSha256"):
                 if st.get(k) != cur[k]:
                     st["history"] = st.get("history", [])
-                    st.setdefault("hashHistory", []).append({
-                        "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "why": args.why,
-                        "field": k, "was": st.get(k), "now": cur[k]})
+                    st.setdefault("hashHistory", []).append(
+                        {
+                            "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                            "why": args.why,
+                            "field": k,
+                            "was": st.get(k),
+                            "now": cur[k],
+                        }
+                    )
                     st[k] = cur[k]
                     changed = True
             if changed:
@@ -266,8 +329,10 @@ def _check_cas(st: dict, expected) -> str | None:
         return None
     cur = int(st.get("revision", 1))
     if cur != expected:
-        return (f"REVISION-CONFLICT: 当前 revision {cur} ≠ expected {expected}——"
-                f"状态已被其他写者更新，请重读状态后重试（不静默覆盖）")
+        return (
+            f"REVISION-CONFLICT: 当前 revision {cur} ≠ expected {expected}——"
+            f"状态已被其他写者更新，请重读状态后重试（不静默覆盖）"
+        )
     return None
 
 

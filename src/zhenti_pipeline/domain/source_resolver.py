@@ -20,6 +20,7 @@ v2 相对 v1 的语义（以 2026-10-11 对 226 条真实卷名串的零漂移�
   去《课程名》；阿拉伯与 YYSSN 旧格式无空格）。
 - 模拟卷：'文档全名 第N学期…模拟题N' / '文档全名模拟卷N'。
 """
+
 import re
 
 DEFAULT_MOCK = {
@@ -29,7 +30,9 @@ DEFAULT_MOCK = {
 CN = {'1': '一', '2': '二'}
 # 学期位接受中文/阿拉伯数字（卷面两种印法都合法，如 2020—2021学年第1学期《课程名》…），
 # 输出统一归一为中文数字。
-PAPER = re.compile(r'^20\d{2}—20\d{2}学年第([一二12])学期《[^》]+》(?:期末考试|期中考试|阶段考试|第[一二三四]次月考|月考)试卷(?:（[AB]卷）)?$')
+PAPER = re.compile(
+    r'^20\d{2}—20\d{2}学年第([一二12])学期《[^》]+》(?:期末考试|期中考试|阶段考试|第[一二三四]次月考|月考)试卷(?:（[AB]卷）)?$'
+)
 ARABIC = re.compile(r'^20(\d{2})-20(\d{2})学年第([12])学期([AB])卷$')
 TERM_MOCK = re.compile(r'^第([一二])学期(期中|期末)考试模拟题([一二])$')
 SHORT_MOCK = re.compile(r'^模拟卷([1-9]\d*)$')
@@ -55,7 +58,7 @@ def _check_contiguous(start: int, end: int, p: str) -> None:
 
 def resolve(paper, subject, mock_source=None):
     p = normalize(paper)
-    mock = (mock_source if mock_source is not None else DEFAULT_MOCK.get(subject, ''))
+    mock = mock_source if mock_source is not None else DEFAULT_MOCK.get(subject, '')
     if PAPER.fullmatch(p):
         y = re.match(r'^(20\d{2})—(20\d{2})学年', p)
         _check_contiguous(int(y.group(1)[-2:]), int(y.group(2)[-2:]), p)

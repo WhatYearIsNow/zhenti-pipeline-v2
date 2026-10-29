@@ -8,6 +8,7 @@
 
 本文件只覆盖历史快照区测试；根 tests/ 下的新代测试自身即守卫产物。
 """
+
 import ast
 import re
 from pathlib import Path
@@ -15,8 +16,12 @@ from pathlib import Path
 import pytest
 
 _SOURCES_PRESENT = (Path(__file__).resolve().parents[1] / "sources").exists()
-pytestmark = [pytest.mark.skipif(not _SOURCES_PRESENT,
-                reason="内部工具链快照（sources/）不在发布包内——私有证据层，公开 CI 不跑")]
+pytestmark = [
+    pytest.mark.skipif(
+        not _SOURCES_PRESENT,
+        reason="内部工具链快照（sources/）不在发布包内——私有证据层，公开 CI 不跑",
+    )
+]
 
 REPO = Path(__file__).resolve().parents[1]
 SCAN_ROOTS = sorted((REPO / "sources" / "skills").glob("*/tests"))
@@ -52,8 +57,12 @@ def test_no_sys_exit_anywhere(relpath, source):
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
             func = node.func
-            if (isinstance(func, ast.Attribute) and func.attr == "exit"
-                    and isinstance(func.value, ast.Name) and func.value.id == "sys"):
+            if (
+                isinstance(func, ast.Attribute)
+                and func.attr == "exit"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "sys"
+            ):
                 pytest.fail(f"{relpath}: 含 sys.exit 调用（应改为 unittest 断言）")
 
 
@@ -65,13 +74,17 @@ def test_no_stdout_redirection(relpath, source):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for target in targets:
                 if isinstance(target, ast.Attribute) and target.attr in ("stdout", "stderr"):
-                    pytest.fail(f"{relpath}: 对 sys.{target.attr} 赋值（ISO-01：收集期不得改写全局流）")
+                    pytest.fail(
+                        f"{relpath}: 对 sys.{target.attr} 赋值（ISO-01：收集期不得改写全局流）"
+                    )
 
 
 @pytest.mark.parametrize("relpath,source", CASES, ids=CASE_IDS)
 def test_no_private_absolute_paths(relpath, source):
     if ABS_PATH_RE.search(source):
-        pytest.fail(f"{relpath}: 引用用户资料/私人工作区路径（历史 A11：测试只允许 __file__ 相对与系统目录探测）")
+        pytest.fail(
+            f"{relpath}: 引用用户资料/私人工作区路径（历史 A11：测试只允许 __file__ 相对与系统目录探测）"
+        )
 
 
 @pytest.mark.parametrize("relpath,source", CASES, ids=CASE_IDS)

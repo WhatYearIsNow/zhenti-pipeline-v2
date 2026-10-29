@@ -2,7 +2,7 @@
 
 以一组 Agent Skills 提供真题整理与成书能力，共用 Python 核心负责确定性执行。
 
-> 当前状态：**候选版开发中（0.1.0.dev0），未公开发布**。发布物、许可证与仓库名称待维护者确认。
+> 当前状态：**候选版开发中（0.1.0.dev0），尚无正式 Release**。MIT 许可与公开仓库已确定；公开代码通过白名单导出，私有开发历史不得整体推送。生产切换、视觉签收及其余发布门槛尚未完成。
 
 ## 这是什么
 
@@ -74,3 +74,5 @@ Pipeline of Agent Skills + a deterministic Python core for curating exam papers 
 structured item banks and typeset books. Explicit workspace/subject/batch parameters,
 approval-gated writes bound to per-batch fingerprints, crash-recoverable multi-file
 transactions, offline-by-default tests. Python ≥3.11; see docs/ and CONTRIBUTING.md.
+
+开发、测试、候选构建和回退约定见[维护流程](MAINTENANCE.md)。

@@ -15,6 +15,7 @@ v2 变更（相对 v1，2026-10-11 阶段01，回滚见 optimization/v2/backups-
 输入变更的后果：total 变化即意味着原料/定稿文件被改动，已有试点结论与审批凭据
 （approval-threat-model §四 invalid_at 条款）随之失效，须重新走审核。
 """
+
 import hashlib
 import json
 import os
@@ -87,7 +88,10 @@ def main() -> int:
         exclude_dirs.append(args[1])
         args = args[2:]
     if len(args) < 2:
-        print("usage: hash_inputs.py [--exclude-dir NAME]... <dir|file>... <out.json>", file=sys.stderr)
+        print(
+            "usage: hash_inputs.py [--exclude-dir NAME]... <dir|file>... <out.json>",
+            file=sys.stderr,
+        )
         return 2
     out_path = args[-1].replace("\\", "/")
     roots = args[:-1]
@@ -97,7 +101,10 @@ def main() -> int:
     if missing_roots:
         for r in missing_roots:
             print(f"ERROR: 输入根不存在: {r}", file=sys.stderr)
-        print(f"ERROR: {len(missing_roots)} 个输入根缺失，拒绝输出指纹（fail-closed）", file=sys.stderr)
+        print(
+            f"ERROR: {len(missing_roots)} 个输入根缺失，拒绝输出指纹（fail-closed）",
+            file=sys.stderr,
+        )
         return 1
 
     cwd = os.getcwd()
@@ -132,7 +139,9 @@ def main() -> int:
         print("ERROR: fingerprint file readback mismatch", file=sys.stderr)
         return 1
     print(total)
-    print(f"files={len(entries)} roots={len(roots)} aliases={aliases} -> {out_path}", file=sys.stderr)
+    print(
+        f"files={len(entries)} roots={len(roots)} aliases={aliases} -> {out_path}", file=sys.stderr
+    )
     return 0
 
 

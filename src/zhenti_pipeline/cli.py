@@ -9,6 +9,7 @@
 S3 先落 check-papers 与 legacy-inspect 两个只读命令；approvals/run-state 仍走
 storage 模块原 CLI（合同由 S2 测试锁定），S4 起并入本入口。
 """
+
 import argparse
 import json
 import sys
@@ -21,16 +22,27 @@ ENVELOPE_VERSION = 1
 
 
 def envelope(ok: bool, status: str, data=None, errors=None, warnings=None, artifacts=None) -> dict:
-    return {"schemaVersion": ENVELOPE_VERSION, "ok": ok, "status": status,
-            "data": data or {}, "errors": errors or [], "warnings": warnings or [],
-            "artifacts": artifacts or []}
+    return {
+        "schemaVersion": ENVELOPE_VERSION,
+        "ok": ok,
+        "status": status,
+        "data": data or {},
+        "errors": errors or [],
+        "warnings": warnings or [],
+        "artifacts": artifacts or [],
+    }
 
 
 def cmd_check_papers(args) -> tuple[int, dict]:
     papers_dir = Path(args.workspace) / "papers" / args.subject
     if not papers_dir.is_dir():
-        return 2, envelope(False, "invalid-input",
-                           errors=[f"papers 目录不存在: {papers_dir}（workspace={args.workspace}, subject={args.subject}）"])
+        return 2, envelope(
+            False,
+            "invalid-input",
+            errors=[
+                f"papers 目录不存在: {papers_dir}（workspace={args.workspace}, subject={args.subject}）"
+            ],
+        )
     result = check_papers.audit(papers_dir)
     artifacts = []
     if args.json_report:
@@ -42,29 +54,35 @@ def cmd_check_papers(args) -> tuple[int, dict]:
         artifacts.append(str(out))
     status = "ok" if result["ok"] else "blocked"
     data = {"subject": args.subject, "papersDir": str(papers_dir), **result}
-    return (0 if result["ok"] else 1), envelope(result["ok"], status, data=data,
-                                                errors=result["errors"],
-                                                warnings=result["warnings"],
-                                                artifacts=artifacts)
+    return (0 if result["ok"] else 1), envelope(
+        result["ok"],
+        status,
+        data=data,
+        errors=result["errors"],
+        warnings=result["warnings"],
+        artifacts=artifacts,
+    )
 
 
 def cmd_legacy_inspect(args) -> tuple[int, dict]:
     papers_dir = Path(args.workspace) / "papers" / args.subject
     if not papers_dir.is_dir():
-        return 2, envelope(False, "invalid-input",
-                           errors=[f"papers 目录不存在: {papers_dir}"])
+        return 2, envelope(False, "invalid-input", errors=[f"papers 目录不存在: {papers_dir}"])
     report = legacy.inspect_papers(papers_dir)
     status = "ok" if not report["errors"] else "blocked"
-    return (0 if not report["errors"] else 1), envelope(not report["errors"], status,
-                                                        data=report, errors=report["errors"],
-                                                        warnings=report["warnings"])
+    return (0 if not report["errors"] else 1), envelope(
+        not report["errors"],
+        status,
+        data=report,
+        errors=report["errors"],
+        warnings=report["warnings"],
+    )
 
 
 def cmd_workflow(args) -> tuple[int, dict]:
     from zhenti_pipeline.workflow.stages import WorkflowRunner
 
-    runner = WorkflowRunner(Path(args.workspace), args.subject, args.batch_id,
-                            run_id=args.run_id)
+    runner = WorkflowRunner(Path(args.workspace), args.subject, args.batch_id, run_id=args.run_id)
     if args.op == "plan":
         plan = runner.plan()
         return 0, envelope(True, "ok", data=plan)
@@ -83,7 +101,9 @@ def cmd_workflow(args) -> tuple[int, dict]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="zhenti_pipeline", description="真题流水线共用核心 CLI（只读命令；显式 workspace）")
+    ap = argparse.ArgumentParser(
+        prog="zhenti_pipeline", description="真题流水线共用核心 CLI（只读命令；显式 workspace）"
+    )
     ap.add_argument("--version", action="version", version=f"zhenti-pipeline {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -98,7 +118,10 @@ def build_parser() -> argparse.ArgumentParser:
     li.add_argument("--subject", required=True)
     li.set_defaults(func=cmd_legacy_inspect)
 
-    wf = sub.add_parser("workflow", help="阶段编排：plan/status/run-stage/resume（确定性核心；agent 阶段返回 pending）")
+    wf = sub.add_parser(
+        "workflow",
+        help="阶段编排：plan/status/run-stage/resume（确定性核心；agent 阶段返回 pending）",
+    )
     wf.add_argument("op", choices=["plan", "status", "run-stage", "resume"])
     wf.add_argument("--workspace", required=True)
     wf.add_argument("--subject", required=True)

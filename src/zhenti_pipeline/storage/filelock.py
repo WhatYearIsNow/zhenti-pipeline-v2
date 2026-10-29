@@ -9,6 +9,7 @@
 锁文件本身只作锁载体（内容记录持有者便于排障），删除与否不影响锁语义；
 默认保留，避免删除窗口期的竞态。
 """
+
 import os
 import time
 from contextlib import contextmanager
@@ -44,7 +45,9 @@ def exclusive_lock(lock_path, timeout: float = 10.0, poll: float = 0.02):
                 break
             except OSError:
                 if time.monotonic() >= deadline:
-                    raise LockBusy(f"锁等待超时（{timeout}s）: {lock_path}——另一进程可能正在操作") from None
+                    raise LockBusy(
+                        f"锁等待超时（{timeout}s）: {lock_path}——另一进程可能正在操作"
+                    ) from None
                 time.sleep(poll)
         try:
             os.lseek(fd, 0, os.SEEK_SET)
@@ -57,6 +60,7 @@ def exclusive_lock(lock_path, timeout: float = 10.0, poll: float = 0.02):
         try:
             if os.name != "nt":
                 import fcntl
+
                 fcntl.flock(fd, fcntl.LOCK_UN)
             else:
                 os.lseek(fd, 0, os.SEEK_SET)
@@ -68,4 +72,5 @@ def exclusive_lock(lock_path, timeout: float = 10.0, poll: float = 0.02):
 
 def _as_path(p):
     from pathlib import Path
+
     return Path(p)

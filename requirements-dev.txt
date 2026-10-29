@@ -1,0 +1,10 @@
+# Reviewed development/test versions; not runtime dependencies.
+ruff==0.14.1
+pytest==9.0.2
+build==1.6.1
+setuptools==80.9.0
+Pillow==12.1.1
+numpy==2.3.5
+PyMuPDF==1.27.2
+reportlab==4.4.10
+jsonschema==4.26.0

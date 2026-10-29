@@ -3,6 +3,7 @@
 需要本机 TeX 工具链（xelatex/pdfinfo，见 docs/contracts/environment.md）；无工具链时
 显式跳过并说明（环境证据，不冒充通过）。模块级 fixture 只构建一次。
 """
+
 import base64
 import hashlib
 import json
@@ -29,10 +30,13 @@ APPROVALS = REPO / "sources" / "workflow" / "optimization" / "v2" / "pipeline" /
 import pytest  # noqa: E402
 
 _SOURCES_PRESENT = (Path(__file__).resolve().parents[1] / "sources").exists()
-pytestmark = [pytest.mark.rendering,
-              pytest.mark.skipif(not HAVE_TEX, reason="需要真实 XeLaTeX 工具链（渲染层环境证据）"),
-              pytest.mark.skipif(not _SOURCES_PRESENT,
-                                 reason="内部工具链快照（sources/）不在发布包内——私有证据层")]
+pytestmark = [
+    pytest.mark.rendering,
+    pytest.mark.skipif(not HAVE_TEX, reason="需要真实 XeLaTeX 工具链（渲染层环境证据）"),
+    pytest.mark.skipif(
+        not _SOURCES_PRESENT, reason="内部工具链快照（sources/）不在发布包内——私有证据层"
+    ),
+]
 
 
 @pytest.fixture(scope="module")
@@ -40,7 +44,11 @@ def built(tmp_path_factory):
     """合成 calculus 科目走完 index→merge-apply→build，产物供本模块全部用例复用。"""
     tmp = tmp_path_factory.mktemp("s5-render")
     ws = make_workspace(tmp)
-    env = {"PATH": TEXBIN + os.pathsep + os.environ.get("PATH", "")} if (Path(TEXBIN) / "xelatex.exe").is_file() else {}
+    env = (
+        {"PATH": TEXBIN + os.pathsep + os.environ.get("PATH", "")}
+        if (Path(TEXBIN) / "xelatex.exe").is_file()
+        else {}
+    )
     runner = WorkflowRunner(ws, "calculus", "b1", env=env)
     runner.run_stage("index")
     mp = runner.run_stage("merge-preview")
@@ -52,8 +60,16 @@ def built(tmp_path_factory):
 
 def _run(ws, env, *argv, timeout=300):
     e = {**os.environ, "PYTHONUTF8": "1", **({"PATH": env["PATH"]} if env else {})}
-    return subprocess.run([sys.executable, *[str(a) for a in argv]], capture_output=True,
-                          text=True, encoding="utf-8", errors="replace", cwd=str(ws), env=e, timeout=timeout)
+    return subprocess.run(
+        [sys.executable, *[str(a) for a in argv]],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(ws),
+        env=e,
+        timeout=timeout,
+    )
 
 
 def test_build_is_stable_and_reported(built):
@@ -70,22 +86,37 @@ def test_pdf_structure_audit_matches_bank(built):
     ws = built["ws"]
     out = built["runner"].run_dir / "build"
     tex = sorted(out.glob("*.tex"))[0]
-    a = _run(ws, built["env"], BUILD_PUBLISH / "audit_structure.py",
-             "--bank", ws / "exam-compilation/exam-compilation/bank-data/calculus.json",
-             "--tex", tex, "--pdf", built["build"]["pdf"])
+    a = _run(
+        ws,
+        built["env"],
+        BUILD_PUBLISH / "audit_structure.py",
+        "--bank",
+        ws / "exam-compilation/exam-compilation/bank-data/calculus.json",
+        "--tex",
+        tex,
+        "--pdf",
+        built["build"]["pdf"],
+    )
     assert a.returncode == 0, a.stdout + a.stderr
     rep = json.loads(a.stdout)
     assert rep["problems"] == []
-    assert rep["uniqueOriginals"] == 2      # (30001,1) 与 (30001,2)
-    assert rep["placements"] == 3           # 含 1 个合法双归属收录
+    assert rep["uniqueOriginals"] == 2  # (30001,1) 与 (30001,2)
+    assert rep["placements"] == 3  # 含 1 个合法双归属收录
     assert rep["legalDuals"] == 1
     assert rep["solnumContinuous"] is True and rep["sourceLines"] == rep["placements"]
 
 
 def test_visual_sample_renders_all_pages(built):
     ws = built["ws"]
-    v = _run(ws, built["env"], BUILD_PUBLISH / "visual_sample.py",
-             "--pdf", built["build"]["pdf"], "--out-dir", ws / "visual")
+    v = _run(
+        ws,
+        built["env"],
+        BUILD_PUBLISH / "visual_sample.py",
+        "--pdf",
+        built["build"]["pdf"],
+        "--out-dir",
+        ws / "visual",
+    )
     assert v.returncode == 0, v.stderr
     res = json.loads(v.stdout)
     assert res["ok"] is True and res["sampled"] == res["pages"] == built["build"]["pages"]
@@ -104,11 +135,26 @@ def test_publish_atomic_with_credential(built, tmp_path):
 
     def run_pub(*extra):
         e = {**os.environ, "PYTHONUTF8": "1", **env}
-        return subprocess.run([sys.executable, str(BUILD_PUBLISH / "publish_book.py"),
-                               "--pdf", pdf, "--subject", "calculus",
-                               "--target-dir", target_dir.relative_to(ws).as_posix(), *extra],
-                              capture_output=True, text=True, encoding="utf-8",
-                              errors="replace", cwd=str(ws), env=e, timeout=120)
+        return subprocess.run(
+            [
+                sys.executable,
+                str(BUILD_PUBLISH / "publish_book.py"),
+                "--pdf",
+                pdf,
+                "--subject",
+                "calculus",
+                "--target-dir",
+                target_dir.relative_to(ws).as_posix(),
+                *extra,
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=str(ws),
+            env=e,
+            timeout=120,
+        )
 
     # dry-run：零写入
     dry = run_pub()
@@ -117,13 +163,33 @@ def test_publish_atomic_with_credential(built, tmp_path):
 
     # 凭据：preview=隔离 PDF sha，old-target=new，target=正式路径
     sha = hashlib.sha256(pdf.read_bytes()).hexdigest()
-    rec = subprocess.run([sys.executable, str(APPROVALS), "record", "--type", "publish",
-                          "--batch-id", "calculus", "--preview-sha", sha,
-                          "--input-sha", sha, "--old-target-sha", "new",
-                          "--target", "exam-compilation/exam-compilation/book/calculus-book.pdf",
-                          "--evidence", "测试批复"], capture_output=True, text=True,
-                         encoding="utf-8", errors="replace",
-                         env={**os.environ, "PYTHONUTF8": "1", "APPROVALS_LEDGER": str(ledger)}, timeout=60)
+    rec = subprocess.run(
+        [
+            sys.executable,
+            str(APPROVALS),
+            "record",
+            "--type",
+            "publish",
+            "--batch-id",
+            "calculus",
+            "--preview-sha",
+            sha,
+            "--input-sha",
+            sha,
+            "--old-target-sha",
+            "new",
+            "--target",
+            "exam-compilation/exam-compilation/book/calculus-book.pdf",
+            "--evidence",
+            "测试批复",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env={**os.environ, "PYTHONUTF8": "1", "APPROVALS_LEDGER": str(ledger)},
+        timeout=60,
+    )
     assert rec.returncode == 0, rec.stderr
 
     ok = run_pub("--apply", "--approve", sha)

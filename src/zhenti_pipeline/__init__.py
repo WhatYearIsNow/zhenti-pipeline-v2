@@ -7,4 +7,5 @@
   adapters/ MinerU、TeX、外审（S4 起迁入）
   cli.py    `python -m zhenti_pipeline` 统一入口（envelope JSON，显式 workspace）
 """
+
 __version__ = "0.1.0.dev0"

@@ -4,6 +4,7 @@
 - 相对引用的目标文件存在（自动检查，不凭记忆）；
 - 公共 SKILL 文档不含私人事实（私人路径/授权记录/账号周边）。
 """
+
 import re
 from pathlib import Path
 
